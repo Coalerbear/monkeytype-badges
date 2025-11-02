@@ -1,1 +1,47 @@
+# .github/workflows/update-monkeytype-badge.yml
+name: Update MonkeyType badge
 
+on:
+  schedule:
+    - cron: '0 * * * *' # hourly
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-badge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Fetch MonkeyType stats and generate badge
+        env:
+          MT_USERNAME: Luke3512
+        run: |
+          python scripts/fetch_monkeytype.py --username "$MT_USERNAME" --output assets/monkeytype-badge.svg
+
+      - name: Commit and push badge if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/monkeytype-badge.svg
+          if ! git diff --quiet --staged; then
+            git commit -m "Update MonkeyType badge for ${MT_USERNAME}"
+            git push
+          else
+            echo "No changes to badge."
+          fi
